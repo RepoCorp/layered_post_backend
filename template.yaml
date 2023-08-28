@@ -5,6 +5,20 @@ Description: >
 
   Sample SAM Template for ServerlessDemo
 
+Parameters:
+
+  Prefix:
+    Type: String
+    Description: Prefix for resources
+
+  DocDBVPCSubnet:
+    Type: AWS::EC2::Subnet::Id
+    Description: VPC Subnet with connectivity to Amazon DocumentDB cluster
+
+  DocDBSecurityGroup:
+    Type: AWS::EC2::SecurityGroup::Id
+    Description: Security group with access to Amazon DocumentDB from within the VPC
+
 # More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
 Globals:
   Function:
@@ -19,121 +33,121 @@ Resources:
     Type: 'AWS::Serverless::Api'
     Properties:
       StageName: Prod
-      Auth:
-        DefaultAuthorizer: JWTCustomAuthorizer
-        Authorizers:
-          JWTCustomAuthorizer:
-            FunctionArn: !GetAtt JWTAuthFunction.Arn
 
-  JWTAuthFunction:
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
+        - arn:aws:iam::aws:policy/AWSLambdaExecute
+      RoleName: !Sub ${Prefix}-Role-Lambda
+
+  LambdaLayerRequirements:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: !Sub ${Prefix}-Layer-requirements
+      Description: Layer for requirements
+      ContentUri: s3://layered-post-backend-code/layers/layer-requirements.zip
+      CompatibleRuntimes:
+        - python3.9
+      LicenseInfo: 'MIT'
+      RetentionPolicy: Retain
+
+  BlogPostCreate:
     Type: 'AWS::Serverless::Function'
     Properties:
-      CodeUri: organizations/user/
-      Handler: authorizer.app.lambda_handler
-      Runtime: python3.8
-
-  OrganizationUserCreate:
-    Type: 'AWS::Serverless::Function'
-    Properties:
-      CodeUri: organizations/user/
-      Handler: create.app.lambda_handler
-      Runtime: python3.8
+      CodeUri: blog/create_post/
+      Handler: app.lambda_handler
+      Layers:
+        - !Ref LambdaLayerRequirements
+      Runtime: python3.9
       Events:
-        CompanyCreateUserPostAPI:
+        BlogCreateUserPostAPI:
           Type: Api
           Properties:
             RestApiId: !Ref MyApi
-            Path: '/user'
+            Path: '/blog-post'
             Method: POST
-            Auth:
-              Authorizer: NONE
+      Role: !GetAtt LambdaExecutionRole.Arn
+      VpcConfig:
+        SecurityGroupIds:
+          - !Ref DocDBSecurityGroup
+        SubnetIds:
+          - !Ref DocDBVPCSubnet
 
-  OrganizationUserRead:
+  BlogPostGet:
     Type: 'AWS::Serverless::Function'
     Properties:
-      CodeUri: organizations/user/
-      Handler: read.app.lambda_handler
-      Runtime: python3.8
+      CodeUri: blog/get_post/
+      Handler: app.lambda_handler
+      Layers:
+        - !Ref LambdaLayerRequirements
+      Runtime: python3.9
       Events:
-        CompanyUserGetAPI:
+        BlogCreateUserGetAPI:
           Type: Api
           Properties:
             RestApiId: !Ref MyApi
-            Path: '/user'
+            Path: '/blog-post/{id}'
             Method: GET
+      Role: !GetAtt LambdaExecutionRole.Arn
+      VpcConfig:
+        SecurityGroupIds:
+          - !Ref DocDBSecurityGroup
+        SubnetIds:
+          - !Ref DocDBVPCSubnet
 
-
-  OrganizationUserReadById:
+  BlogPostUpdate:
     Type: 'AWS::Serverless::Function'
     Properties:
-      CodeUri: organizations/user/
-      Handler: read.app.lambda_handler
-      Runtime: python3.8
+      CodeUri: blog/update_post
+      Handler: app.lambda_handler
+      Layers:
+        - !Ref LambdaLayerRequirements
+      Runtime: python3.9
       Events:
-        CompanyUserGetByIdAPI:
+        BlogCreateUserGetAPI:
           Type: Api
           Properties:
             RestApiId: !Ref MyApi
-            Path: '/user/{Id}'
+            Path: '/blog-post/{id}'
+            Method: POST
+      Role: !GetAtt LambdaExecutionRole.Arn
+      VpcConfig:
+        SecurityGroupIds:
+          - !Ref DocDBSecurityGroup
+        SubnetIds:
+          - !Ref DocDBVPCSubnet
+
+
+  BlogPostList:
+    Type: 'AWS::Serverless::Function'
+    Properties:
+      CodeUri: blog/list_post/
+      Handler: app.lambda_handler
+      Layers:
+        - !Ref LambdaLayerRequirements
+      Runtime: python3.9
+      Events:
+        BlogCreateUserGetAPI:
+          Type: Api
+          Properties:
+            RestApiId: !Ref MyApi
+            Path: '/blog-post'
             Method: GET
-
-
-  OrganizationUserUpdateById:
-    Type: 'AWS::Serverless::Function'
-    Properties:
-      CodeUri: organizations/user/
-      Handler: update.app.lambda_handler
-      Runtime: python3.8
-      Events:
-        CompanyUserUpdateByIdAPI:
-          Type: Api
-          Properties:
-            RestApiId: !Ref MyApi
-            Path: '/user/{Id}'
-            Method: PUT
-
-
-  OrganizationUserDeleteById:
-    Type: 'AWS::Serverless::Function'
-    Properties:
-      CodeUri: organizations/user/
-      Handler: delete.app.lambda_handler
-      Runtime: python3.8
-      Events:
-        CompanyUserDeleteByIdAPI:
-          Type: Api
-          Properties:
-            RestApiId: !Ref MyApi
-            Path: '/user/{Id}'
-            Method: DELETE
-
-  OrganizationUserLogin:
-    Type: 'AWS::Serverless::Function'
-    Properties:
-      CodeUri: organizations/user/
-      Handler: login.app.lambda_handler
-      Runtime: python3.8
-      Events:
-        LoginAPI:
-          Type: Api
-          Properties:
-            RestApiId: !Ref MyApi
-            Path: '/user/login'
-            Method: POST
-            Auth:
-              Authorizer: NONE
-
-
-  OrganizationRefreshToken:
-    Type: 'AWS::Serverless::Function'
-    Properties:
-      CodeUri: organizations/user/
-      Handler: login.app.token_refresh
-      Runtime: python3.8
-      Events:
-        RefreshTokenAPI:
-          Type: Api
-          Properties:
-            RestApiId: !Ref MyApi
-            Path: '/user/refresh-token'
-            Method: POST
+      Role: !GetAtt LambdaExecutionRole.Arn
+      VpcConfig:
+        SecurityGroupIds:
+          - !Ref DocDBSecurityGroup
+        SubnetIds:
+          - !Ref DocDBVPCSubnet

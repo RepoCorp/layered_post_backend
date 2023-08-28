@@ -1,0 +1,137 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: 'ServerlessDemo
+
+  Sample SAM Template for ServerlessDemo
+
+  '
+Globals:
+  Function:
+    Timeout: 30
+    MemorySize: 2048
+    Environment:
+      Variables:
+        SECRET_KEY: secret-info
+Resources:
+  MyApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: Prod
+      Auth:
+        DefaultAuthorizer: JWTCustomAuthorizer
+        Authorizers:
+          JWTCustomAuthorizer:
+            FunctionArn:
+              Fn::GetAtt:
+              - JWTAuthFunction
+              - Arn
+    Metadata:
+      SamResourceId: MyApi
+  JWTAuthFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: s3://aws-sam-cli-managed-default-samclisourcebucket-1osbohtzbgfxy/fe42f997d075494590e93d43014859cb
+      Handler: authorizer.app.lambda_handler
+      Runtime: python3.8
+    Metadata:
+      SamResourceId: JWTAuthFunction
+  BlogPostCreate:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: s3://aws-sam-cli-managed-default-samclisourcebucket-1osbohtzbgfxy/fe42f997d075494590e93d43014859cb
+      Handler: create_post.app.lambda_handler
+      Runtime: python3.8
+      Events:
+        CompanyCreateUserPostAPI:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: MyApi
+            Path: /post
+            Method: POST
+            Auth:
+              Authorizer: NONE
+    Metadata:
+      SamResourceId: BlogPostCreate
+  BlogPostReadById:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: s3://aws-sam-cli-managed-default-samclisourcebucket-1osbohtzbgfxy/fe42f997d075494590e93d43014859cb
+      Handler: read.app.lambda_handler
+      Runtime: python3.8
+      Events:
+        CompanyUserGetByIdAPI:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: MyApi
+            Path: /post/{Id}
+            Method: GET
+    Metadata:
+      SamResourceId: BlogPostReadById
+  BlogPostUpdateById:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: s3://aws-sam-cli-managed-default-samclisourcebucket-1osbohtzbgfxy/fe42f997d075494590e93d43014859cb
+      Handler: update.app.lambda_handler
+      Runtime: python3.8
+      Events:
+        CompanyUserUpdateByIdAPI:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: MyApi
+            Path: /post/{Id}
+            Method: PUT
+    Metadata:
+      SamResourceId: BlogPostUpdateById
+  BlogPostDeleteById:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: s3://aws-sam-cli-managed-default-samclisourcebucket-1osbohtzbgfxy/fe42f997d075494590e93d43014859cb
+      Handler: delete.app.lambda_handler
+      Runtime: python3.8
+      Events:
+        CompanyUserDeleteByIdAPI:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: MyApi
+            Path: /post/{Id}
+            Method: DELETE
+    Metadata:
+      SamResourceId: BlogPostDeleteById
+  BlogUserLogin:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: s3://aws-sam-cli-managed-default-samclisourcebucket-1osbohtzbgfxy/fe42f997d075494590e93d43014859cb
+      Handler: login.app.lambda_handler
+      Runtime: python3.8
+      Events:
+        LoginAPI:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: MyApi
+            Path: /post/login
+            Method: POST
+            Auth:
+              Authorizer: NONE
+    Metadata:
+      SamResourceId: BlogUserLogin
+  OrganizationRefreshToken:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: s3://aws-sam-cli-managed-default-samclisourcebucket-1osbohtzbgfxy/fe42f997d075494590e93d43014859cb
+      Handler: login.app.token_refresh
+      Runtime: python3.8
+      Events:
+        RefreshTokenAPI:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: MyApi
+            Path: /post/refresh-token
+            Method: POST
+    Metadata:
+      SamResourceId: OrganizationRefreshToken

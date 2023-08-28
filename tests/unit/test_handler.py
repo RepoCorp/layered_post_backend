@@ -1,7 +1,7 @@
 import json
 import pytest
 import time
-from organizations.user.create import app
+from blog.post.create import app
 from .testing_db import db
 
 
