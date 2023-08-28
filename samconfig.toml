@@ -7,4 +7,4 @@ region = "us-east-1"
 confirm_changeset = true
 capabilities = "CAPABILITY_NAMED_IAM"
 image_repositories = []
-parameter_overrides = "Prefix=\"blog\" DocDBIdentifier=\"docdb-2023-07-31-13-17-47\" DocDBUsername=\"catalinadelacuesta\" DocDBVPCSubnet=\"subnet-3295bd1c\" DocDBSecurityGroup=\"sg-5ac6ac05\""
+parameter_overrides = "Prefix=\"blog\" DocDBVPCSubnet=\"subnet-3295bd1c\" DocDBSecurityGroup=\"sg-5ac6ac05\""

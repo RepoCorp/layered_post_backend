@@ -26,7 +26,7 @@ Globals:
     MemorySize: 2048
     Environment:
       Variables:
-        SECRET_KEY: secret-info
+        SECRET_KEY: layered_blog_db
 
 Resources:
   MyApi:
@@ -57,7 +57,7 @@ Resources:
     Properties:
       LayerName: !Sub ${Prefix}-Layer-requirements
       Description: Layer for requirements
-      ContentUri: s3://layered-post-backend-code/layers/layer-requirements.zip
+      ContentUri: layer-requirements.zip
       CompatibleRuntimes:
         - python3.9
       LicenseInfo: 'MIT'
